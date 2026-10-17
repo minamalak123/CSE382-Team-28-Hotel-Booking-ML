@@ -1,0 +1,22 @@
+
+project:
+  name: "CSE382 Hotel Booking ML"
+  dataset: "H2.csv"
+  random_seed: 42
+
+paths:
+  raw_data: "data/raw/H2.csv"
+  artifacts: "artifacts"
+  outputs: "outputs"
+  reports: "reports"
+
+data:
+  expected_rows: 79330
+  expected_columns: 31
+  target_regression: "ADR"
+  target_classification: "IsCanceled"
+
+validation:
+  test_size: 0.20
+  validation_size: 0.20
+  cross_validation_folds: 5
