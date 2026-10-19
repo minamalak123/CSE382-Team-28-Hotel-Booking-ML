@@ -7,3 +7,4 @@ PyYAML
 joblib
 jupyter
 pytest
+xgboost

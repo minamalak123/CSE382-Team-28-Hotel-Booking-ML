@@ -31,8 +31,6 @@ artifacts/*
 !artifacts/.gitkeep
 
 # Generated outputs
-outputs/*
-!outputs/.gitkeep
 
 # Local dataset files
 data/raw/

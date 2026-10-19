@@ -1,0 +1,14 @@
+,count,unique,top,freq
+ArrivalDateMonth,47598,12,August,5411
+Meal,47598,4,BB,37305
+Country,47587,152,PRT,18630
+MarketSegment,47598,8,Online TA,23181
+DistributionChannel,47598,5,TA/TO,41390
+ReservedRoomType,47598,8,A,37543
+AssignedRoomType,47598,9,A,34133
+DepositType,47598,3,No Deposit,39872
+Agent,42764,204,9,19157
+Company,2205,159,40,558
+CustomerType,47598,4,Transient,35566
+ReservationStatus,47598,3,Check-Out,27736
+ReservationStatusDate,47598,852,2015-10-21,841
