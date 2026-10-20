@@ -4,6 +4,7 @@ import pandas as pd
 
 
 
+
 def main():
     project_root = Path(__file__).resolve().parents[2]
     data_path = project_root / "data" / "raw" / "H2.csv"
@@ -121,6 +122,85 @@ def main():
              "Country", "ADR", "ReservationStatus"]
         ].to_string(index=False)
     )
+
+    print("\n" + "=" * 60)
+    print("TARGET VALIDITY CHECKS")
+    print("=" * 60)
+
+    print("\nUnique IsCanceled values:")
+    print(sorted(df["IsCanceled"].dropna().unique()))
+
+    invalid_cancellation = df[
+    ~df["IsCanceled"].isin([0, 1])
+]
+
+    print(
+    "Rows with invalid IsCanceled values:",
+    len(invalid_cancellation)
+)
+
+    invalid_adr = df[
+    (df["ADR"] < 0) |
+    (~df["ADR"].between(float("-inf"), float("inf")))
+]
+
+    print("Rows with negative or non-finite ADR:", len(invalid_adr))
+
+    print("\nTarget validity checks finished.")
+    print("\n" + "=" * 60)
+    print("NON-NEGATIVE COUNT CHECKS")
+    print("=" * 60)
+
+    count_columns = [
+    "LeadTime",
+    "StaysInWeekendNights",
+    "StaysInWeekNights",
+    "Adults",
+    "Children",
+    "Babies",
+    "PreviousCancellations",
+    "PreviousBookingsNotCanceled",
+    "BookingChanges",
+    "DaysInWaitingList",
+    "RequiredCarParkingSpaces",
+    "TotalOfSpecialRequests"
+]
+
+    for column in count_columns:
+     negative_count = (df[column] < 0).sum()
+     print(f"{column}: {negative_count} negative values")
+
+    print("\nNon-negative count checks finished.")
+
+    
+    print("\n" + "=" * 60)
+    print("ARRIVAL DATE VALIDITY CHECKS")
+    print("=" * 60)
+
+    valid_months = [
+    "January", "February", "March", "April",
+    "May", "June", "July", "August",
+    "September", "October", "November", "December"
+]
+
+    invalid_months = df[
+    ~df["ArrivalDateMonth"].isin(valid_months)
+]
+
+    print("Invalid arrival month values:", len(invalid_months))
+
+    invalid_weeks = df[
+    ~df["ArrivalDateWeekNumber"].between(1, 53)
+]
+
+    print("Invalid arrival week numbers:", len(invalid_weeks))
+    invalid_days = df[
+    ~df["ArrivalDateDayOfMonth"].between(1, 31)
+]
+
+    print("Invalid arrival day numbers:", len(invalid_days))
+
+    print("\nArrival date validity checks finished.")
 
     print("\nValidation finished.")
 
