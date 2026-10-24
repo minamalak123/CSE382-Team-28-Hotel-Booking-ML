@@ -1,209 +1,63 @@
+"""Dataset validation: verifies the file against the H2 specification and writes a text report.
 
-from pathlib import Path
-import pandas as pd
+Run from the project root:  python -m src.data.validate_data
+It uses the shared loader, so padded strings and the literal 'NULL' are handled exactly as in
+the rest of the project (otherwise Agent / Company would wrongly look complete).
+"""
+import numpy as np
 
+from src.config import load_config, path_for
+from src.data.loader import load_h2
 
-
-
-def main():
-    project_root = Path(__file__).resolve().parents[2]
-    data_path = project_root / "data" / "raw" / "H2.csv"
-
-    if not data_path.exists():
-        raise FileNotFoundError(
-            f"Dataset not found at: {data_path}"
-        )
-
-    df = pd.read_csv(data_path)
-
-    print("=" * 60)
-    print("DATASET VALIDATION")
-    print("=" * 60)
-
-    print(f"\nFile: {data_path.name}")
-    print(f"Rows: {df.shape[0]:,}")
-    print(f"Columns: {df.shape[1]}")
-
-    print("\nColumn names:")
-    print(df.columns.tolist())
-
-    print("\nData types:")
-    print(df.dtypes.to_string())
-
-    print("\nMissing values per column:")
-    print(df.isnull().sum().to_string())
-
-    print(f"\nDuplicate rows: {df.duplicated().sum():,}")
-
-    duplicate_mask = df.duplicated(keep=False)
-    duplicate_rows = df[duplicate_mask]
-
-    print("\n" + "=" * 60)
-    print("DUPLICATE ROW INVESTIGATION")
-    print("=" * 60)
-
-    print(f"Rows belonging to duplicate groups: {len(duplicate_rows):,}")
-    print(
-        "Rows remaining after hypothetical exact-duplicate removal: "
-        f"{len(df.drop_duplicates()):,}"
-    )
-
-    print("\nNumber of duplicate groups by identical row content:")
-    print(
-        duplicate_rows.value_counts()
-        .value_counts()
-        .sort_index()
-        .to_string()
-    )
-
-    print("\nSample duplicate rows:")
-    if not duplicate_rows.empty:
-        print(duplicate_rows.head(10).to_string(index=False))
-    else:
-        print("No duplicate rows found.")
+MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+          "August", "September", "October", "November", "December"]
+COUNT_COLUMNS = ["LeadTime", "StaysInWeekendNights", "StaysInWeekNights", "Adults", "Children",
+                 "Babies", "PreviousCancellations", "PreviousBookingsNotCanceled",
+                 "BookingChanges", "DaysInWaitingList", "RequiredCarParkingSpaces",
+                 "TotalOfSpecialRequests"]
 
 
-    for target in ["ADR", "IsCanceled"]:
-        if target in df.columns:
-            print(f"\nTarget summary: {target}")
-            print(df[target].describe().to_string())
-        else:
-            print(f"\nWARNING: Target '{target}' not found.")
+def run_validation(cfg=None) -> list:
+    cfg = cfg or load_config()
+    df = load_h2(path_for(cfg, "raw_data"))
+    lines, problems = [], []
 
-    print("\n" + "=" * 60)
-    print("ADR INVESTIGATION")
-    print("=" * 60)
+    def log(msg=""):
+        lines.append(msg); print(msg)
 
-    print(f"Rows with ADR = 0: {(df['ADR'] == 0).sum():,}")
-    print(f"Rows with ADR > 500: {(df['ADR'] > 500).sum():,}")
+    def check(ok, msg):
+        log(("PASS  " if ok else "FAIL  ") + msg)
+        if not ok:
+            problems.append(msg)
 
-    print("\nHighest ADR values:")
-    print(
-        df.nlargest(10, "ADR")[
-            ["ADR", "IsCanceled", "LeadTime", "Adults",
-             "Children", "ArrivalDateYear", "ArrivalDateMonth"]
-        ].to_string(index=False)
-    )
+    log("=" * 60 + "\nDATASET VALIDATION\n" + "=" * 60)
+    check(df.shape == (cfg["data"]["expected_rows"], cfg["data"]["expected_columns"]),
+          f"shape is {df.shape} (expected {cfg['data']['expected_rows']} x {cfg['data']['expected_columns']})")
+    check(df["IsCanceled"].isin([0, 1]).all(), "IsCanceled contains only 0/1")
+    check(df["ADR"].notna().all() and np.isfinite(df["ADR"]).all() and (df["ADR"] >= 0).all(),
+          "ADR is finite and non-negative")
+    for c in COUNT_COLUMNS:
+        check(not (df[c] < 0).any(), f"{c} has no negative values")
+    check(df["ArrivalDateMonth"].isin(MONTHS).all(), "ArrivalDateMonth holds valid month names")
+    check(df["ArrivalDateWeekNumber"].between(1, 53).all(), "ArrivalDateWeekNumber in 1..53")
+    check(df["ArrivalDateDayOfMonth"].between(1, 31).all(), "ArrivalDateDayOfMonth in 1..31")
+    check(df["ReservationStatus"].isin(["Check-Out", "Canceled", "No-Show"]).all(),
+          "ReservationStatus has the 3 documented values")
 
-    zero_adr = df[df["ADR"] == 0]
+    log("\nMissing values after cleaning padded strings and 'NULL':")
+    log(df.isna().sum()[lambda s: s > 0].to_string())
+    log(f"\nExact duplicate rows: {df.duplicated().sum():,} "
+        f"({df.duplicated().mean():.1%}) -> removed by clean_records()")
+    log(f"ADR == 0 rows: {(df['ADR'] == 0).sum():,};  ADR > 1000 rows: {(df['ADR'] > 1000).sum()}")
+    guests = df["Adults"] + df["Children"].fillna(0) + df["Babies"]
+    log(f"Zero-guest rows: {(guests == 0).sum()}")
+    log(f"\nValidation finished: {len(problems)} failed check(s).")
 
-    print("\nZero-ADR investigation:")
-    print(f"Total rows: {len(zero_adr)}")
-
-    print("\nCancellation status:")
-    print(zero_adr["IsCanceled"].value_counts().to_string())
-
-    print("\nGuest counts:")
-    print(
-        zero_adr[["Adults", "Children", "Babies"]]
-        .value_counts()
-        .head(10)
-        .to_string()
-    )
-
-    print("\nRecords by arrival year:")
-    print(zero_adr["ArrivalDateYear"].value_counts().sort_index().to_string())
-    
-    print("\n" + "=" * 60)
-    print("MISSING VALUES INVESTIGATION")
-    print("=" * 60)
-
-    missing_rows = df[df.isnull().any(axis=1)]
-
-    print(f"Rows containing missing values: {len(missing_rows)}")
-
-    print("\nMissing values by column:")
-    print(df.isnull().sum()[df.isnull().sum() > 0].to_string())
-
-    print("\nRows with missing values:")
-    print(
-        missing_rows[
-            ["IsCanceled", "LeadTime", "Adults", "Children",
-             "Country", "ADR", "ReservationStatus"]
-        ].to_string(index=False)
-    )
-
-    print("\n" + "=" * 60)
-    print("TARGET VALIDITY CHECKS")
-    print("=" * 60)
-
-    print("\nUnique IsCanceled values:")
-    print(sorted(df["IsCanceled"].dropna().unique()))
-
-    invalid_cancellation = df[
-    ~df["IsCanceled"].isin([0, 1])
-]
-
-    print(
-    "Rows with invalid IsCanceled values:",
-    len(invalid_cancellation)
-)
-
-    invalid_adr = df[
-    (df["ADR"] < 0) |
-    (~df["ADR"].between(float("-inf"), float("inf")))
-]
-
-    print("Rows with negative or non-finite ADR:", len(invalid_adr))
-
-    print("\nTarget validity checks finished.")
-    print("\n" + "=" * 60)
-    print("NON-NEGATIVE COUNT CHECKS")
-    print("=" * 60)
-
-    count_columns = [
-    "LeadTime",
-    "StaysInWeekendNights",
-    "StaysInWeekNights",
-    "Adults",
-    "Children",
-    "Babies",
-    "PreviousCancellations",
-    "PreviousBookingsNotCanceled",
-    "BookingChanges",
-    "DaysInWaitingList",
-    "RequiredCarParkingSpaces",
-    "TotalOfSpecialRequests"
-]
-
-    for column in count_columns:
-     negative_count = (df[column] < 0).sum()
-     print(f"{column}: {negative_count} negative values")
-
-    print("\nNon-negative count checks finished.")
-
-    
-    print("\n" + "=" * 60)
-    print("ARRIVAL DATE VALIDITY CHECKS")
-    print("=" * 60)
-
-    valid_months = [
-    "January", "February", "March", "April",
-    "May", "June", "July", "August",
-    "September", "October", "November", "December"
-]
-
-    invalid_months = df[
-    ~df["ArrivalDateMonth"].isin(valid_months)
-]
-
-    print("Invalid arrival month values:", len(invalid_months))
-
-    invalid_weeks = df[
-    ~df["ArrivalDateWeekNumber"].between(1, 53)
-]
-
-    print("Invalid arrival week numbers:", len(invalid_weeks))
-    invalid_days = df[
-    ~df["ArrivalDateDayOfMonth"].between(1, 31)
-]
-
-    print("Invalid arrival day numbers:", len(invalid_days))
-
-    print("\nArrival date validity checks finished.")
-
-    print("\nValidation finished.")
+    out = path_for(cfg, "outputs") / "eda"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "validation_report.txt").write_text("\n".join(lines))
+    return problems
 
 
 if __name__ == "__main__":
-    main()
+    run_validation()
