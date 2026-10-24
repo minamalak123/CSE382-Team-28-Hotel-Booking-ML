@@ -1,13 +1,13 @@
 """
 eda.py - Exploratory Data Analysis for H2 (City Hotel) booking data.
 
-Place at: src/data/eda.py      Run from the project root:  python -m src.data.eda
+Run from the project root:  python -m src.data.eda
 
 Design rules (CSE382 spec):
   * Uses ONLY the training split -> no peeking at val/test (indirect leakage).
   * Seed and split sizes come from config.yaml (single source of truth).
-  * Uses the spec's source labels (IsCanceled, LeadTime, ...). snake_case headers
-    are mapped back one-to-one, so the mapping is documented in SOURCE_LABELS.
+  * Uses the spec's source labels (IsCanceled, LeadTime, ...) unchanged (no renaming).
+  * The split comes from src/data/split.py: cleaned + de-duplicated once, then saved.
   * Cleans the raw file's quirks: padded strings ("HB       ") and the literal
     string "NULL" (Agent / Company) are converted to real missing values.
   * Saves every table/figure to outputs/eda/ so the app and report can reuse them.
@@ -25,60 +25,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import yaml
-from sklearn.model_selection import train_test_split
 
-CONFIG_PATH = Path("config.yaml")
-OUT_DIR = Path("outputs/eda")
-SOURCE_LABELS = [
-    "IsCanceled", "LeadTime", "ArrivalDateYear", "ArrivalDateMonth",
-    "ArrivalDateWeekNumber", "ArrivalDateDayOfMonth", "StaysInWeekendNights",
-    "StaysInWeekNights", "Adults", "Children", "Babies", "Meal", "Country",
-    "MarketSegment", "DistributionChannel", "IsRepeatedGuest",
-    "PreviousCancellations", "PreviousBookingsNotCanceled", "ReservedRoomType",
-    "AssignedRoomType", "BookingChanges", "DepositType", "Agent", "Company",
-    "DaysInWaitingList", "CustomerType", "ADR", "RequiredCarParkingSpaces",
-    "TotalOfSpecialRequests", "ReservationStatus", "ReservationStatusDate",
-]
-# "is_canceled" / "IsCanceled" / "iscanceled" all normalise to the same key.
-_KEY = {lbl.lower(): lbl for lbl in SOURCE_LABELS}
+from src.config import load_config, path_for
+from src.data.loader import load_h2
+from src.data.split import load_splits
+
+OUT_DIR = path_for(load_config(), "outputs") / "eda"
 MONTH_ORDER = ["January", "February", "March", "April", "May", "June", "July",
                "August", "September", "October", "November", "December"]
-
-
-# ---------------------------------------------------------------- config
-def load_config(path: Path = CONFIG_PATH) -> dict:
-    with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-# ---------------------------------------------------------------- loading
-def load_h2(path: Path) -> pd.DataFrame:
-    """Load H2.csv, strip padded strings, turn 'NULL' into NaN, map to source labels."""
-    df = pd.read_csv(path)
-    df.columns = [_KEY.get(c.replace("_", "").lower(), c) for c in df.columns]
-    missing = set(SOURCE_LABELS) - set(df.columns)
-    if missing:
-        raise ValueError(f"CSV does not match H2 schema, missing: {sorted(missing)}")
-    df = df[SOURCE_LABELS].copy()
-    for c in df.columns:
-        if not pd.api.types.is_numeric_dtype(df[c]):
-            s = df[c].str.strip()                       # "HB       " -> "HB"
-            df[c] = s.mask(s.str.upper() == "NULL")      # "NULL"      -> NaN
-    return df
-
-
-def make_splits(df: pd.DataFrame, cfg: dict):
-    """Stratified train/val/test split on IsCanceled. Fractions are of the FULL data."""
-    seed = cfg["project"]["random_seed"]
-    test_size = cfg["validation"]["test_size"]
-    val_size = cfg["validation"]["validation_size"]
-    train_val, test = train_test_split(
-        df, test_size=test_size, stratify=df["IsCanceled"], random_state=seed)
-    train, val = train_test_split(
-        train_val, test_size=val_size / (1.0 - test_size),
-        stratify=train_val["IsCanceled"], random_state=seed)
-    return train, val, test
 
 
 # ---------------------------------------------------------------- helpers
@@ -230,20 +184,16 @@ def plot_cardinality(train):
 
 
 # ---------------------------------------------------------------- main
-def run_eda(config_path: Path = CONFIG_PATH):
+def run_eda(config_path: Path = None):
     cfg = load_config(config_path)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     sns.set_theme(style="whitegrid")
 
-    full = load_h2(Path(cfg["paths"]["raw_data"]))
-    exp_r, exp_c = cfg["data"]["expected_rows"], cfg["data"]["expected_columns"]
-    if full.shape != (exp_r, exp_c):
-        raise ValueError(f"Expected {(exp_r, exp_c)}, got {full.shape}")
-
-    train, val, test = make_splits(full, cfg)
+    raw = load_h2(path_for(cfg, "raw_data"))      # only used to REPORT what cleaning removed
+    train, val, test = load_splits(cfg)           # cleaned + de-duplicated, saved once
     print(f"split sizes -> train {len(train)}, val {len(val)}, test {len(test)}")
 
-    overview_tables(full, train, val, test)
+    overview_tables(raw, train, val, test)
     plot_missing(train)
     plot_class_balance(train)
     plot_adr(train)
