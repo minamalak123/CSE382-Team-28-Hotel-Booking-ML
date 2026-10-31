@@ -202,6 +202,140 @@ def main():
 
     print("\nArrival date validity checks finished.")
 
+
+    print("\n" + "=" * 60)
+    print("CANCELLATION STATUS CONSISTENCY CHECKS")
+    print("=" * 60)
+
+    print("\nReservation status counts:")
+    print(df["ReservationStatus"].value_counts(dropna=False).to_string())
+
+    print("\nIsCanceled vs ReservationStatus:")
+    print(
+        pd.crosstab(
+            df["IsCanceled"],
+            df["ReservationStatus"],
+            dropna=False
+        ).to_string()
+    )
+
+    print("\nReservation status by cancellation target:")
+    print(
+        df.groupby(
+            ["ReservationStatus", "IsCanceled"],
+            dropna=False
+        ).size().to_string()
+    )
+
+    print("\nCancellation status consistency investigation finished.")
+
+
+    print("\n" + "=" * 60)
+    print("FULL CALENDAR DATE VALIDITY CHECKS")
+    print("=" * 60)
+
+    # Convert month names into month numbers.
+    month_numbers = {
+        "January": 1,
+        "February": 2,
+        "March": 3,
+        "April": 4,
+        "May": 5,
+        "June": 6,
+        "July": 7,
+        "August": 8,
+        "September": 9,
+        "October": 10,
+        "November": 11,
+        "December": 12
+    }
+
+    # Build temporary date components.
+    date_parts = pd.DataFrame({
+        "year": df["ArrivalDateYear"],
+        "month": df["ArrivalDateMonth"].map(month_numbers),
+        "day": df["ArrivalDateDayOfMonth"]
+    })
+
+    # Invalid or missing components cannot form a valid date.
+    valid_components = date_parts.notna().all(axis=1)
+
+    # Check whether each complete date is a real calendar date.
+    parsed_dates = pd.to_datetime(
+        date_parts,
+        errors="coerce"
+    )
+
+    invalid_dates = parsed_dates.isna() | ~valid_components
+
+    print(f"Invalid or incomplete arrival dates: {invalid_dates.sum()}")
+
+    if invalid_dates.any():
+        print("\nSample invalid arrival-date records:")
+        print(
+            df.loc[
+                invalid_dates,
+                [
+                    "ArrivalDateYear",
+                    "ArrivalDateMonth",
+                    "ArrivalDateDayOfMonth"
+                ]
+            ].head(10).to_string(index=False)
+        )
+
+    print("\nFull calendar date validity checks finished.")
+
+
+    
+    print("\n" + "=" * 60)
+    print("BOOKING LOGICAL CONSISTENCY CHECKS")
+    print("=" * 60)
+
+    # Check bookings with zero adults.
+    zero_adults = df["Adults"].eq(0)
+
+    print(f"\nBookings with zero adults: {zero_adults.sum()}")
+
+    # Check bookings with zero total nights.
+    total_nights = (
+        df["StaysInWeekendNights"]
+        + df["StaysInWeekNights"]
+    )
+
+    zero_nights = total_nights.eq(0)
+
+    print(f"Bookings with zero total nights: {zero_nights.sum()}")
+
+    # Check records with both zero adults and zero nights.
+    zero_adults_and_nights = zero_adults & zero_nights
+
+    print(
+        "Bookings with both zero adults and zero nights: "
+        f"{zero_adults_and_nights.sum()}"
+    )
+
+    # Display examples for investigation only.
+    suspicious_bookings = zero_adults | zero_nights
+
+    if suspicious_bookings.any():
+        print("\nSample potentially unusual bookings:")
+        print(
+            df.loc[
+                suspicious_bookings,
+                [
+                    "IsCanceled",
+                    "Adults",
+                    "Children",
+                    "Babies",
+                    "StaysInWeekendNights",
+                    "StaysInWeekNights",
+                    "ReservationStatus"
+                ]
+            ].head(10).to_string(index=False)
+        )
+
+    print("\nBooking logical consistency checks finished.")
+
     print("\nValidation finished.")
 
 
