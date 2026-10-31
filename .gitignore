@@ -30,8 +30,7 @@ Thumbs.db
 artifacts/*
 !artifacts/.gitkeep
 
-# Generated data splits (rebuilt by: python main.py analyze)
-data/processed/
+# Generated outputs
 
 # Local dataset files
 data/raw/
