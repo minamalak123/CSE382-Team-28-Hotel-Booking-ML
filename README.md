@@ -58,4 +58,6 @@ python src/data/validate_data.py
 
 ## Project Status
 
-Milestone 1 (in progress): data validation, EDA, preprocessing, baseline experiments.
+Milestone 1 (in progress): Done from prediction point and done with feature list.
+
+Next Up: Reproducible Split.
