@@ -1,0 +1,188 @@
+{
+  "prediction_point": "Booking confirmation: the moment the hotel confirms the reservation to the customer. Only information final at that moment may be used.",
+  "engineered": {
+    "TotalNights": "StaysInWeekendNights + StaysInWeekNights",
+    "TotalGuests": "Adults + Children + Babies",
+    "ArrivalDayOfWeek": "Weekday name from arrival year/month/day",
+    "HasAgent": "1 if Agent is not missing",
+    "HasCompany": "1 if Company is not missing"
+  },
+  "tasks": {
+    "regression": {
+      "default": {
+        "target": "ADR",
+        "numeric": [
+          "LeadTime",
+          "ArrivalDateDayOfMonth",
+          "StaysInWeekendNights",
+          "StaysInWeekNights",
+          "Adults",
+          "Children",
+          "Babies",
+          "IsRepeatedGuest",
+          "PreviousCancellations",
+          "PreviousBookingsNotCanceled",
+          "DaysInWaitingList",
+          "TotalNights",
+          "TotalGuests",
+          "HasAgent",
+          "HasCompany",
+          "ArrivalDateYear",
+          "TotalOfSpecialRequests"
+        ],
+        "categorical": [
+          "ArrivalDateMonth",
+          "ArrivalDayOfWeek",
+          "Meal",
+          "MarketSegment",
+          "DistributionChannel",
+          "ReservedRoomType",
+          "DepositType",
+          "CustomerType",
+          "Agent",
+          "Country"
+        ]
+      },
+      "strict": {
+        "target": "ADR",
+        "numeric": [
+          "LeadTime",
+          "ArrivalDateDayOfMonth",
+          "StaysInWeekendNights",
+          "StaysInWeekNights",
+          "Adults",
+          "Children",
+          "Babies",
+          "IsRepeatedGuest",
+          "PreviousCancellations",
+          "PreviousBookingsNotCanceled",
+          "DaysInWaitingList",
+          "TotalNights",
+          "TotalGuests",
+          "HasAgent",
+          "HasCompany",
+          "ArrivalDateYear"
+        ],
+        "categorical": [
+          "ArrivalDateMonth",
+          "ArrivalDayOfWeek",
+          "Meal",
+          "MarketSegment",
+          "DistributionChannel",
+          "ReservedRoomType",
+          "DepositType",
+          "CustomerType",
+          "Agent"
+        ]
+      },
+      "profile_only": []
+    },
+    "classification": {
+      "default": {
+        "target": "IsCanceled",
+        "numeric": [
+          "LeadTime",
+          "ArrivalDateDayOfMonth",
+          "StaysInWeekendNights",
+          "StaysInWeekNights",
+          "Adults",
+          "Children",
+          "Babies",
+          "IsRepeatedGuest",
+          "PreviousCancellations",
+          "PreviousBookingsNotCanceled",
+          "DaysInWaitingList",
+          "TotalNights",
+          "TotalGuests",
+          "HasAgent",
+          "HasCompany",
+          "ADR",
+          "TotalOfSpecialRequests"
+        ],
+        "categorical": [
+          "ArrivalDateMonth",
+          "ArrivalDayOfWeek",
+          "Meal",
+          "MarketSegment",
+          "DistributionChannel",
+          "ReservedRoomType",
+          "DepositType",
+          "CustomerType",
+          "Agent",
+          "Country"
+        ]
+      },
+      "strict": {
+        "target": "IsCanceled",
+        "numeric": [
+          "LeadTime",
+          "ArrivalDateDayOfMonth",
+          "StaysInWeekendNights",
+          "StaysInWeekNights",
+          "Adults",
+          "Children",
+          "Babies",
+          "IsRepeatedGuest",
+          "PreviousCancellations",
+          "PreviousBookingsNotCanceled",
+          "DaysInWaitingList",
+          "TotalNights",
+          "TotalGuests",
+          "HasAgent",
+          "HasCompany",
+          "ADR"
+        ],
+        "categorical": [
+          "ArrivalDateMonth",
+          "ArrivalDayOfWeek",
+          "Meal",
+          "MarketSegment",
+          "DistributionChannel",
+          "ReservedRoomType",
+          "DepositType",
+          "CustomerType",
+          "Agent"
+        ]
+      },
+      "profile_only": []
+    },
+    "clustering": {
+      "default": {
+        "target": null,
+        "numeric": [
+          "LeadTime",
+          "TotalNights",
+          "TotalGuests",
+          "ADR",
+          "IsRepeatedGuest",
+          "PreviousBookingsNotCanceled",
+          "TotalOfSpecialRequests"
+        ],
+        "categorical": [
+          "MarketSegment",
+          "CustomerType",
+          "DepositType"
+        ]
+      },
+      "strict": {
+        "target": null,
+        "numeric": [
+          "LeadTime",
+          "TotalNights",
+          "TotalGuests",
+          "ADR",
+          "IsRepeatedGuest",
+          "PreviousBookingsNotCanceled"
+        ],
+        "categorical": [
+          "MarketSegment",
+          "CustomerType",
+          "DepositType"
+        ]
+      },
+      "profile_only": [
+        "IsCanceled"
+      ]
+    }
+  }
+}

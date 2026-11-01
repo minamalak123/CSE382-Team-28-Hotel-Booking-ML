@@ -1,0 +1,32 @@
+column,tier,reason,regression,classification,clustering
+IsCanceled,target,"Classification target. Happens after confirmation, so it is excluded from regression features; used only to profile clusters.",-,target,-
+ADR,target,"Regression target. The agreed nightly price is known at confirmation, so it is a valid feature for classification and clustering.",target,yes,yes
+LeadTime,safe,"Days between booking entry and arrival, fixed at booking.",yes,yes,yes
+ArrivalDateYear,safe,"Known. Used for ADR only (price trend 85.7->103.2->117.9 by year); no cancel signal and only partial years, so not used elsewhere.",yes,-,-
+ArrivalDateMonth,safe,"Planned arrival month, known.",yes,yes,-
+ArrivalDateDayOfMonth,safe,"Planned arrival day, known.",yes,yes,-
+StaysInWeekendNights,safe,"Planned stay length, known.",yes,yes,-
+StaysInWeekNights,safe,"Planned stay length, known.",yes,yes,-
+Adults,safe,"Party size, known.",yes,yes,-
+Children,safe,"Party size, known (3 missing -> impute 0).",yes,yes,-
+Babies,safe,"Party size, known.",yes,yes,-
+Meal,safe,Board type chosen at booking.,yes,yes,-
+MarketSegment,safe,"Sales segment, known.",yes,yes,yes
+DistributionChannel,safe,"Booking channel, known.",yes,yes,-
+IsRepeatedGuest,safe,Guest history before this booking.,yes,yes,yes
+PreviousCancellations,safe,Guest history before this booking.,yes,yes,-
+PreviousBookingsNotCanceled,safe,Guest history before this booking.,yes,yes,yes
+ReservedRoomType,safe,Room type requested at booking.,yes,yes,-
+DepositType,safe,"Deposit policy agreed at booking. Note: 'Non Refund' cancels 99.8% of the time, a known dataset quirk, not a timing leak.",yes,yes,yes
+Agent,safe,"Travel agent ID, known (NULL = direct booking -> 'None').",yes,yes,-
+DaysInWaitingList,safe,"Days on the waiting list BEFORE confirmation, so final at the prediction point.",yes,yes,-
+CustomerType,safe,"Contract / Transient / Group, known.",yes,yes,yes
+TotalOfSpecialRequests,uncertain,Requests can be added after booking (cancel rate 21.6% when >0 vs 54.9% when 0). Kept; ablate.,yes,yes,yes
+Country,uncertain,Often only confirmed at check-in (PRT cancels 64.7% vs 26.9% for others). Kept by default; dropped in the strict ablation.,yes,yes,-
+ReservationStatus,leak,Final outcome (Canceled / Check-Out / No-Show): a 1:1 copy of IsCanceled.,-,-,-
+ReservationStatusDate,leak,Date the final status was set: after the outcome.,-,-,-
+AssignedRoomType,leak,Assigned at check-in. Cancel rate 5.8% when it differs from the reserved room vs 45.3% when equal.,-,-,-
+BookingChanges,leak,Counts changes up to check-in or cancellation (future).,-,-,-
+RequiredCarParkingSpaces,leak,"Recorded at arrival: 0.0% of the 1,162 train bookings with parking > 0 were canceled (a perfect leak).",-,-,-
+ArrivalDateWeekNumber,dropped,Redundant with month + day of month.,-,-,-
+Company,dropped,95.4% missing. Replaced by the engineered flag HasCompany.,-,-,-
