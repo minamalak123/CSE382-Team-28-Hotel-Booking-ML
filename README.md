@@ -59,6 +59,6 @@ python src/data/validate_data.py
 
 ## Project Status
 
-Milestone 1 (in progress): Done from reproducible split.
+Milestone 1 (in progress): Preprocess Done.
 
-Next Up:preprocessing.
+Next Up: Start with baseline models (Regression, Classification, Clustering).
