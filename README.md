@@ -13,6 +13,7 @@ Tasks: Regression (ADR), Classification (IsCanceled), Clustering.
 | Aly Ahmed Mohamed Elsayed Eltallawy | 24P0279 | Aly-Tallawy |
 | Ahmed Baher Amir Mahmoud El Damhougy | 24P0274 | ahmedbaher905-png |
 
+
 ## Repository
 
 - GitHub: https://github.com/minamalak123/CSE382-Team-28-Hotel-Booking-ML
@@ -58,6 +59,6 @@ python src/data/validate_data.py
 
 ## Project Status
 
-Milestone 1 (in progress): Done from prediction point and done with feature list.
+Milestone 1 (in progress): Done from reproducible split.
 
-Next Up: Reproducible Split.
+Next Up:preprocessing.

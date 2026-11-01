@@ -13,6 +13,7 @@ paths:
 data:
   expected_rows: 79330
   expected_columns: 31
+  max_valid_adr: 1000
   target_regression: "ADR"
   target_classification: "IsCanceled"
 

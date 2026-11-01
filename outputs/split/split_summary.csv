@@ -1,0 +1,4 @@
+split,rows,cancel_rate,share
+test,15833,0.4179,0.2
+train,47496,0.4178,0.6
+val,15833,0.4179,0.2

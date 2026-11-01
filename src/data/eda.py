@@ -5,7 +5,7 @@ Place at: src/data/eda.py      Run from the project root:  python -m src.data.ed
 
 Design rules (CSE382 spec):
   * Uses ONLY the training split -> no peeking at val/test (indirect leakage).
-  * Seed and split sizes come from config.yaml (single source of truth).
+  * Uses the saved split from src/data/split.py (same rows as the models).
   * Uses the spec's source labels (IsCanceled, LeadTime, ...). snake_case headers
     are mapped back one-to-one, so the mapping is documented in SOURCE_LABELS.
   * Cleans the raw file's quirks: padded strings ("HB       ") and the literal
@@ -26,7 +26,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import yaml
-from sklearn.model_selection import train_test_split
 
 CONFIG_PATH = Path("config.yaml")
 OUT_DIR = Path("outputs/eda")
@@ -66,19 +65,6 @@ def load_h2(path: Path) -> pd.DataFrame:
             s = df[c].str.strip()                       # "HB       " -> "HB"
             df[c] = s.mask(s.str.upper() == "NULL")      # "NULL"      -> NaN
     return df
-
-
-def make_splits(df: pd.DataFrame, cfg: dict):
-    """Stratified train/val/test split on IsCanceled. Fractions are of the FULL data."""
-    seed = cfg["project"]["random_seed"]
-    test_size = cfg["validation"]["test_size"]
-    val_size = cfg["validation"]["validation_size"]
-    train_val, test = train_test_split(
-        df, test_size=test_size, stratify=df["IsCanceled"], random_state=seed)
-    train, val = train_test_split(
-        train_val, test_size=val_size / (1.0 - test_size),
-        stratify=train_val["IsCanceled"], random_state=seed)
-    return train, val, test
 
 
 # ---------------------------------------------------------------- helpers
@@ -240,7 +226,12 @@ def run_eda(config_path: Path = CONFIG_PATH):
     if full.shape != (exp_r, exp_c):
         raise ValueError(f"Expected {(exp_r, exp_c)}, got {full.shape}")
 
-    train, val, test = make_splits(full, cfg)
+    # Same cleaned rows + saved split as the models (built by: python -m src.data.split).
+    # Imported here, not at the top: split.py imports from this file (circular import).
+    from src.data.split import SPLIT_FILE, clean_rows, load_split
+    if not SPLIT_FILE.exists():
+        raise FileNotFoundError(f"{SPLIT_FILE} missing - run: python -m src.data.split")
+    train, val, test = load_split(clean_rows(full, cfg["data"]["max_valid_adr"]))
     print(f"split sizes -> train {len(train)}, val {len(val)}, test {len(test)}")
 
     overview_tables(full, train, val, test)
