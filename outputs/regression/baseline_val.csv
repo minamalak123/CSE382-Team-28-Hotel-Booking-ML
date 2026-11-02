@@ -1,3 +1,3 @@
 model,fit_seconds,train_MAE,train_RMSE,train_R2,val_MAE,val_RMSE,val_R2
-dummy_mean,0.81,29.4771,39.0993,0.0,29.4989,38.9216,-0.0003
-linear_regression,1.2,15.4425,22.2457,0.6763,14.906,21.4947,0.6949
+dummy_mean,0.75,29.6628,39.1847,0.0,29.678,39.4247,-0.0004
+linear_regression,0.96,15.2689,22.1101,0.6816,15.8038,22.8459,0.6641
