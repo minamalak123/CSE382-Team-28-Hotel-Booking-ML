@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
 
 from src.data.eda import CONFIG_PATH, load_config, load_h2
+from src.features.feature_lists import add_engineered_features, get_feature_lists
 
 SPLIT_FILE = Path("artifacts/split_indices.csv")
 SUMMARY_FILE = Path("outputs/split/split_summary.csv")
@@ -17,10 +18,26 @@ def clean_rows(df: pd.DataFrame, max_adr: float) -> pd.DataFrame:
     return df[~bad]
 
 
+def model_key_columns() -> list[str]:
+    """Every column a supervised model can see, plus ADR (the regression answer).
+    IsCanceled is deliberately NOT included: rows with the same inputs but a
+    different cancel outcome must still be twins, or they could straddle the split."""
+    cols = set()
+    for task in ("regression", "classification"):
+        fl = get_feature_lists(task)
+        cols |= set(fl["numeric"] + fl["categorical"])
+    return sorted(cols | {"ADR"})
+
+
 def make_groups(df: pd.DataFrame) -> pd.Series:
-    """Same group ID for identical rows (hash of all 31 columns)."""
+    """Same group ID for rows that are identical in ALL columns of `df`."""
     row_hash = pd.util.hash_pandas_object(df, index=False)
     return pd.Series(pd.factorize(row_hash)[0], index=df.index)
+
+
+def twin_groups(df: pd.DataFrame) -> pd.Series:
+    """Group ID per row using only model-visible columns (raw H2 schema in)."""
+    return make_groups(add_engineered_features(df)[model_key_columns()])
 
 
 def make_split(df: pd.DataFrame, cfg: dict) -> pd.Series:
@@ -28,7 +45,7 @@ def make_split(df: pd.DataFrame, cfg: dict) -> pd.Series:
     Step 1: 5 folds -> fold 0 = test (20%).
     Step 2: remaining 80% into 4 folds -> fold 0 = val (20% of total)."""
     seed = cfg["project"]["random_seed"]
-    y, groups = df["IsCanceled"], make_groups(df)
+    y, groups = df["IsCanceled"], twin_groups(df)
 
     n_test = round(1 / cfg["validation"]["test_size"])                     # 5
     rest_share = 1 - cfg["validation"]["test_size"]                        # 0.8
@@ -48,13 +65,23 @@ def make_split(df: pd.DataFrame, cfg: dict) -> pd.Series:
 
 
 def check_no_overlap(df: pd.DataFrame, labels: pd.Series) -> None:
-    """Fail hard if any identical row appears in two splits."""
-    groups = make_groups(df)
+    """Fail hard if any twin group appears in two splits."""
+    groups = twin_groups(df)
     sets = {s: set(groups[labels == s]) for s in ("train", "val", "test")}
     for a, b in [("train", "val"), ("train", "test"), ("val", "test")]:
         shared = sets[a] & sets[b]
         if shared:
-            raise RuntimeError(f"{len(shared)} duplicate groups shared by {a} and {b}")
+            raise RuntimeError(f"{len(shared)} twin groups shared by {a} and {b}")
+
+
+def cv_folds(train: pd.DataFrame, cfg: dict) -> list:
+    """Grouped, stratified CV folds INSIDE train: a list of (fit_positions,
+    score_positions). Pass it as `cv=` to cross_validate / GridSearchCV /
+    RandomizedSearchCV / Optuna loops. Same folds for every task and model,
+    so comparisons are fair (PDF section 12)."""
+    sgkf = StratifiedGroupKFold(n_splits=cfg["validation"]["cross_validation_folds"],
+                                shuffle=True, random_state=cfg["project"]["random_seed"])
+    return list(sgkf.split(train, train["IsCanceled"], twin_groups(train)))
 
 
 def load_split(df: pd.DataFrame):

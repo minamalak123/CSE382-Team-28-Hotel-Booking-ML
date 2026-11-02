@@ -1,9 +1,9 @@
 check,n_in_group,cancel_rate_in_group,cancel_rate_rest
-RequiredCarParkingSpaces > 0,1162,0.0,0.4277
-AssignedRoomType != ReservedRoomType,4356,0.0581,0.4535
-BookingChanges > 0,6146,0.1655,0.4546
-TotalOfSpecialRequests > 0,18806,0.2158,0.5489
-Country == PRT,18630,0.6473,0.2694
-DepositType == Non Refund,7715,0.9979,0.305
-DaysInWaitingList > 0,2058,0.6788,0.4055
+RequiredCarParkingSpaces > 0,1144,0.0,0.4282
+AssignedRoomType != ReservedRoomType,4224,0.0535,0.4534
+BookingChanges > 0,6090,0.1637,0.4552
+TotalOfSpecialRequests > 0,19098,0.213,0.5556
+Country == PRT,18301,0.6568,0.2681
+DepositType == Non Refund,7922,0.9981,0.3017
+DaysInWaitingList > 0,2178,0.7048,0.4041
 ReservationStatus vs IsCanceled (rows mixing labels),0,,

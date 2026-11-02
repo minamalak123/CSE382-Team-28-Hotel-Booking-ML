@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -47,5 +49,17 @@ def test_engineered_features():
     out = add_engineered_features(df)
     assert out.loc[0, "TotalNights"] == 3
     assert out.loc[0, "TotalGuests"] == 3
-    assert out.loc[0, "ArrivalDayOfWeek"] == "Friday"   # 1 July 2016
+    assert out.loc[0, "ArrivalDayOfWeek"] == "Friday"   
     assert out.loc[0, "HasAgent"] == 0 and out.loc[0, "HasCompany"] == 1
+
+
+def test_main_runs_end_to_end(tmp_path):
+    """Catches broken imports inside main() (e.g. a renamed split function).
+    Without data/split it still runs and must skip the evidence file cleanly."""
+    from src.features.feature_lists import main
+    main(out_dir=tmp_path)
+    assert (tmp_path / "column_audit.csv").exists()
+    assert (tmp_path / "feature_lists.json").exists()
+    from src.data.split import SPLIT_FILE
+    if SPLIT_FILE.exists() and Path("data/raw/H2.csv").exists():
+        assert (tmp_path / "leakage_evidence.csv").exists()

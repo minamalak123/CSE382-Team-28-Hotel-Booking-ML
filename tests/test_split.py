@@ -10,27 +10,19 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.data.split import check_no_overlap, clean_rows, make_groups, make_split
+from src.data.split import (check_no_overlap, clean_rows, cv_folds, make_groups,
+                            make_split, model_key_columns, twin_groups)
+from tests.fakes import fake_raw_bookings
 
 CFG = {"project": {"random_seed": 42},
-       "validation": {"test_size": 0.20, "validation_size": 0.20}}
+       "validation": {"test_size": 0.20, "validation_size": 0.20,
+                      "cross_validation_folds": 5}}
 RAW = Path("data/raw/H2.csv")
 
 
 def fake_bookings(n_unique: int = 400, seed: int = 0) -> pd.DataFrame:
-    """n_unique distinct bookings, some copied 2-5 times (like group bookings).
-    ~40% canceled, mirroring the real data."""
-    rng = np.random.default_rng(seed)
-    base = pd.DataFrame({
-        "LeadTime": np.arange(n_unique),                    # makes every base row unique
-        "Adults": rng.integers(1, 4, n_unique),
-        "Children": rng.integers(0, 2, n_unique).astype(float),
-        "Babies": 0,
-        "ADR": rng.uniform(50, 200, n_unique).round(2),
-        "IsCanceled": (rng.random(n_unique) < 0.4).astype(int),
-    })
-    copies = rng.choice([1, 1, 1, 2, 5], size=n_unique)     # some rows get duplicates
-    return base.loc[base.index.repeat(copies)].reset_index(drop=True)
+    """Shared fake H2 data; copies of a booking are model-twins (see tests/fakes.py)."""
+    return fake_raw_bookings(n_unique, seed)
 
 
 # ----------------------------------------------------------- Part A: fake data
@@ -71,8 +63,13 @@ def test_no_duplicate_group_crosses_splits():
 
 
 def test_overlap_check_catches_a_leak():
-    df = pd.DataFrame({"a": [1, 1, 2, 3]})
-    leaky = pd.Series(["train", "test", "val", "train"])   # rows 0 and 1 are identical
+    df = fake_bookings()
+    twins = twin_groups(df)
+    first_pair = twins[twins.duplicated(keep=False)].index[:2]   # two twin rows
+    leaky = pd.Series("train", index=df.index)
+    leaky.iloc[1::5] = "val"
+    leaky.iloc[2::5] = "test"
+    leaky[first_pair[0]], leaky[first_pair[1]] = "train", "test"  # put them apart
     with pytest.raises(RuntimeError):
         check_no_overlap(df, leaky)
 
@@ -86,6 +83,39 @@ def test_different_seed_gives_different_split():
     df = fake_bookings()
     other = {**CFG, "project": {"random_seed": 7}}
     assert not make_split(df, CFG).equals(make_split(df, other))
+
+
+def test_key_has_model_columns_but_no_leaks_or_label():
+    key = set(model_key_columns())
+    assert "ADR" in key and "LeadTime" in key and "HasCompany" in key
+    for col in ("IsCanceled", "ReservationStatus", "ReservationStatusDate",
+                "AssignedRoomType", "BookingChanges", "RequiredCarParkingSpaces"):
+        assert col not in key
+
+
+def test_twins_differ_raw_but_share_a_group():
+    """Rows that differ only in a column no model sees are ONE group."""
+    df = fake_bookings()
+    assert not df.duplicated().any()                 # raw file: no exact duplicates
+    assert twin_groups(df).duplicated().any()        # model view: twins exist
+
+
+def test_twins_never_straddle_the_split():
+    df = fake_bookings()
+    labels = make_split(df, CFG)
+    per_group = labels.groupby(twin_groups(df)).nunique()
+    assert (per_group == 1).all()
+
+
+def test_cv_folds_are_grouped_and_cover_train():
+    df = fake_bookings()
+    folds = cv_folds(df, CFG)
+    assert len(folds) == 5
+    groups = twin_groups(df).to_numpy()
+    scored = np.concatenate([score for _, score in folds])
+    assert sorted(scored) == list(range(len(df)))    # every row scored exactly once
+    for fit, score in folds:
+        assert not set(groups[fit]) & set(groups[score])   # no twin on both sides
 
 
 # ----------------------------------------------------------- Part B: real data
@@ -121,3 +151,17 @@ def test_real_split_is_stratified(real_split):
 def test_real_no_leak(real_split):
     df, labels = real_split
     check_no_overlap(df, labels)
+
+
+def test_real_no_model_level_twins_across_splits(real_split):
+    """For each supervised task: no val/test row has an exact input+answer twin in train."""
+    from src.features.feature_lists import add_engineered_features, get_feature_lists
+    df, labels = real_split
+    eng = add_engineered_features(df)
+    for task in ("regression", "classification"):
+        fl = get_feature_lists(task)
+        cols = fl["numeric"] + fl["categorical"] + [fl["target"]]
+        h = pd.util.hash_pandas_object(eng[cols], index=False)
+        seen = set(h[labels == "train"])
+        for part in ("val", "test"):
+            assert not h[labels == part].isin(seen).any(), (task, part)

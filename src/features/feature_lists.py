@@ -1,13 +1,5 @@
 """
 PREDICTION POINT
-  "Booking confirmation": the moment the hotel confirms a reservation to the
-  customer. One prediction per booking. A column is a valid feature only if its
-  value is final at that moment. Anything written later (at check-in, at
-  cancellation, or during the stay) is excluded for ALL tasks.
-
-  Analogy: a weather forecast must be made with what you know this morning.
-  Reading tomorrow's newspaper first gives a perfect but useless forecast.
-
 
 
 Tiers:
@@ -42,7 +34,7 @@ COLUMN_DECISIONS: dict[str, tuple[str, str]] = {
     "ADR": ("target", "Regression target. The agreed nightly price is known at confirmation, "
                       "so it is a valid feature for classification and clustering."),
     "LeadTime": ("safe", "Days between booking entry and arrival, fixed at booking."),
-    "ArrivalDateYear": ("safe", "Known. Used for ADR only (price trend 85.7->103.2->117.9 by year); "
+    "ArrivalDateYear": ("safe", "Known. Used for ADR only (price trend 86.1->103.8->116.9 by year); "
                                 "no cancel signal and only partial years, so not used elsewhere."),
     "ArrivalDateMonth": ("safe", "Planned arrival month, known."),
     "ArrivalDateDayOfMonth": ("safe", "Planned arrival day, known."),
@@ -65,19 +57,19 @@ COLUMN_DECISIONS: dict[str, tuple[str, str]] = {
                                   "the prediction point."),
     "CustomerType": ("safe", "Contract / Transient / Group, known."),
     "TotalOfSpecialRequests": ("uncertain", "Requests can be added after booking (cancel rate "
-                                            "21.6% when >0 vs 54.9% when 0). Kept; ablate."),
-    "Country": ("uncertain", "Often only confirmed at check-in (PRT cancels 64.7% vs 26.9% for "
+                                            "21.4% when >0 vs 55.1% when 0). Kept; ablate."),
+    "Country": ("uncertain", "Often only confirmed at check-in (PRT cancels 65.4% vs 26.8% for "
                              "others). Kept by default; dropped in the strict ablation."),
     "ReservationStatus": ("leak", "Final outcome (Canceled / Check-Out / No-Show): a 1:1 copy "
                                   "of IsCanceled."),
     "ReservationStatusDate": ("leak", "Date the final status was set: after the outcome."),
-    "AssignedRoomType": ("leak", "Assigned at check-in. Cancel rate 5.8% when it differs from "
+    "AssignedRoomType": ("leak", "Assigned at check-in. Cancel rate 6.4% when it differs from "
                                  "the reserved room vs 45.3% when equal."),
     "BookingChanges": ("leak", "Counts changes up to check-in or cancellation (future)."),
-    "RequiredCarParkingSpaces": ("leak", "Recorded at arrival: 0.0% of the 1,162 train bookings "
+    "RequiredCarParkingSpaces": ("leak", "Recorded at arrival: 0.0% of the 1,141 train bookings "
                                          "with parking > 0 were canceled (a perfect leak)."),
     "ArrivalDateWeekNumber": ("dropped", "Redundant with month + day of month."),
-    "Company": ("dropped", "95.4% missing. Replaced by the engineered flag HasCompany."),
+    "Company": ("dropped", "95.2% missing. Replaced by the engineered flag HasCompany."),
 }
 
 ENGINEERED = {
@@ -228,16 +220,20 @@ def main(out_dir: Path = Path("outputs/features")) -> None:
                              "profile_only": PROFILE_ONLY.get(t, [])} for t in TASKS}}
     (out_dir / "feature_lists.json").write_text(json.dumps(payload, indent=2))
 
-    # Evidence needs the raw data; skip gracefully if it is not downloaded.
-    from src.data.eda import CONFIG_PATH, load_config, load_h2, make_splits
+    # Evidence is measured on the SAME cleaned train rows the models use (saved split).
+    # Imported here, not at the top: split.py -> eda.py would otherwise load at import time.
+    from src.data.eda import CONFIG_PATH, load_config, load_h2
+    from src.data.split import SPLIT_FILE, clean_rows, load_split
     cfg = load_config(CONFIG_PATH)
     raw = Path(cfg["paths"]["raw_data"])
-    if raw.exists():
-        train, _, _ = make_splits(load_h2(raw), cfg)
+    if raw.exists() and SPLIT_FILE.exists():
+        df = clean_rows(load_h2(raw), cfg["data"]["max_valid_adr"])
+        train, _, _ = load_split(df)
         leakage_evidence(train).to_csv(out_dir / "leakage_evidence.csv", index=False)
         add_engineered_features(train)  # smoke test on real data
     else:
-        print(f"[skip] {raw} not found: leakage_evidence.csv not written")
+        print(f"[skip] needs {raw} and {SPLIT_FILE} (run: python -m src.data.split): "
+              "leakage_evidence.csv not written")
     for t in TASKS:
         fl = get_feature_lists(t)
         print(f"{t:15s} target={fl['target']!s:10s} "

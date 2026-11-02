@@ -1,14 +1,14 @@
 ,count,unique,top,freq
-ArrivalDateMonth,47496,12,August,5393
-Meal,47496,4,BB,37531
-Country,47480,147,PRT,18421
-MarketSegment,47496,8,Online TA,23142
-DistributionChannel,47496,5,TA/TO,41298
-ReservedRoomType,47496,7,A,37562
-AssignedRoomType,47496,8,A,34254
-DepositType,47496,3,No Deposit,39665
-Agent,42615,200,9,19090
-Company,2289,160,40,536
-CustomerType,47496,4,Transient,35698
+ArrivalDateMonth,47496,12,August,5369
+Meal,47496,4,BB,37335
+Country,47495,148,PRT,18301
+MarketSegment,47496,8,Online TA,23260
+DistributionChannel,47496,5,TA/TO,41279
+ReservedRoomType,47496,7,A,37338
+AssignedRoomType,47496,8,A,34063
+DepositType,47496,3,No Deposit,39557
+Agent,42655,203,9,19201
+Company,2261,169,40,553
+CustomerType,47496,4,Transient,35776
 ReservationStatus,47496,3,Check-Out,27650
-ReservationStatusDate,47496,855,2015-10-21,848
+ReservationStatusDate,47496,849,2015-10-21,839
