@@ -103,7 +103,7 @@ _SPEC = {
     "clustering": {
         "numeric": ["LeadTime", "TotalNights", "TotalGuests", "ADR", "IsRepeatedGuest",
                     "PreviousBookingsNotCanceled", "TotalOfSpecialRequests"],
-        "categorical": ["MarketSegment", "CustomerType", "DepositType"],
+        "categorical": ["MarketSegment", "CustomerType"],
     },
 }
 PROFILE_ONLY = {"clustering": ["IsCanceled"]} 
