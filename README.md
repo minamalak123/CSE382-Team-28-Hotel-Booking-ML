@@ -17,7 +17,7 @@ Tasks: Regression (ADR), Classification (IsCanceled), Clustering.
 ## Repository
 
 - GitHub: https://github.com/minamalak123/CSE382-Team-28-Hotel-Booking-ML
-- Submitted commit SHA: (fill in right before submission)
+- Submitted commit SHA: 284458bd17c71fc2d14b499af05cce4f9a2a622f
 
 ## Environment Setup (Windows)
 
@@ -59,6 +59,6 @@ python src/data/validate_data.py
 
 ## Project Status
 
-Milestone 1 (in progress): Preprocess Done.
+Milestone 1 (in progress): Milestone 1 Done.
 
-Next Up: Start with baseline models (Regression, Classification, Clustering).
+Next Up: Milestone 2.
