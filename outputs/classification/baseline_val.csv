@@ -1,0 +1,3 @@
+model,fit_seconds,train_accuracy,train_precision,train_recall,train_f1,train_roc_auc,train_pr_auc,val_accuracy,val_precision,val_recall,val_f1,val_roc_auc,val_pr_auc
+dummy_prior,0.38,0.5822,0.0,0.0,0.0,0.5,0.4178,0.5821,0.0,0.0,0.0,0.5,0.4179
+logistic_regression,0.74,0.8156,0.8298,0.7029,0.7611,0.8957,0.8783,0.8021,0.8159,0.6799,0.7417,0.8842,0.8659

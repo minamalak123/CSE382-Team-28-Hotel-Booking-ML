@@ -1,0 +1,6 @@
+cluster,size,size_pct,median_LeadTime,median_TotalNights,median_TotalGuests,median_ADR,median_IsRepeatedGuest,median_PreviousBookingsNotCanceled,median_TotalOfSpecialRequests,top_MarketSegment,top_CustomerType,non_refund_share_profile_only,cancel_rate_profile_only
+0,7505,16.0,5.0,1.0,2.0,100.0,0.0,0.0,0.0,Online TA,Transient,0.032,0.23
+1,13115,28.0,84.0,3.0,2.0,105.3,0.0,0.0,1.0,Online TA,Transient,0.0,0.231
+2,20346,43.4,123.0,3.0,2.0,90.0,0.0,0.0,0.0,Offline TA/TO,Transient,0.375,0.628
+3,1028,2.2,6.0,2.0,1.0,67.0,1.0,1.0,0.0,Corporate,Transient,0.046,0.297
+4,4873,10.4,65.0,3.0,3.0,168.0,0.0,0.0,1.0,Online TA,Transient,0.002,0.398

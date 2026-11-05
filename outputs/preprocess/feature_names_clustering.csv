@@ -17,6 +17,3 @@ cat__CustomerType_Contract
 cat__CustomerType_Transient
 cat__CustomerType_Transient-Party
 cat__CustomerType_infrequent_sklearn
-cat__DepositType_No Deposit
-cat__DepositType_Non Refund
-cat__DepositType_infrequent_sklearn
