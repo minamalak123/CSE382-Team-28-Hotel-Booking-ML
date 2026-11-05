@@ -1,0 +1,5 @@
+model,features,fit_seconds,n_model_inputs,train_MAE,train_RMSE,train_R2,val_MAE,val_RMSE,val_R2
+linear_regression,none,1.02,107,15.2689,22.1101,0.6816,15.8038,22.8459,0.6641
+linear_regression,pca,1.09,38,19.776,27.9378,0.4917,20.161,28.6324,0.4723
+knn,none,0.67,107,12.0832,20.5122,0.726,16.5933,25.6235,0.5774
+knn,pca,1.13,38,13.1133,22.038,0.6837,17.8416,27.2128,0.5234
